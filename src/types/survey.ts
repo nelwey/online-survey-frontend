@@ -28,6 +28,7 @@ export interface SurveyResponse {
   submittedAt: string;
   respondentName?: string;
   respondentEmail?: string;
+  respondentAge?: number;
 }
 
 export interface Answer {

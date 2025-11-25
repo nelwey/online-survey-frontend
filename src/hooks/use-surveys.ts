@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
-import type { Survey, CreateSurveyInput } from '@/types/survey';
+import type { CreateSurveyInput } from '@/types/survey';
 import { toast } from 'sonner';
 
 export const useSurveys = () => {

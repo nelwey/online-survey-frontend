@@ -5,10 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, BarChart3, Users, FileText } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export function SurveyResultsPage() {
   const { id } = useParams<{ id: string }>();
@@ -191,7 +189,7 @@ export function SurveyResultsPage() {
   );
 }
 
-function renderQuestionStats(stat: any, question: any) {
+function renderQuestionStats(stat: { questionId: string; question: string; type: string; responses: Record<string, number>; averageRating?: number }, question: { type: string }) {
   if (question.type === 'rating' && stat.averageRating !== undefined) {
     return (
       <div className="space-y-4">
@@ -235,10 +233,10 @@ function renderQuestionStats(stat: any, question: any) {
         </ResponsiveContainer>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-4">
-          {data.map((item, index) => (
+          {data.map((item) => (
             <div key={item.name} className="flex items-center justify-between p-2 border rounded">
               <span className="text-sm">{item.name}</span>
-              <span className="font-semibold">{item.value}</span>
+              <span className="font-semibold">{String(item.value)}</span>
             </div>
           ))}
         </div>

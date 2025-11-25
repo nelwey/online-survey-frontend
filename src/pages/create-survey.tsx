@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, type Control } from 'react-hook-form';
 import { useUser } from '@/contexts/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -32,12 +32,12 @@ const surveySchema = z.object({
   isPublished: z.boolean().default(true),
 });
 
-type SurveyFormData = z.infer<typeof surveySchema>;
+type SurveyFormData = z.input<typeof surveySchema>;
 
 export function CreateSurveyPage() {
   const navigate = useNavigate();
   const createSurvey = useCreateSurvey();
-  const { user, isAuthenticated } = useUser();
+  const { isAuthenticated } = useUser();
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -60,6 +60,8 @@ export function CreateSurveyPage() {
     control: form.control,
     name: 'questions',
   });
+
+  const control = form.control as Control<SurveyFormData>;
 
   const addQuestion = (type: Question['type']) => {
     const baseQuestion: Partial<Question> = {
@@ -119,7 +121,7 @@ export function CreateSurveyPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
-                control={form.control}
+                control={control}
                 name="title"
                 render={({ field }) => (
                   <FormItem>
@@ -133,7 +135,7 @@ export function CreateSurveyPage() {
               />
 
               <FormField
-                control={form.control}
+                control={control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
@@ -150,7 +152,7 @@ export function CreateSurveyPage() {
               />
 
               <FormField
-                control={form.control}
+                control={control}
                 name="isPublished"
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-4">
@@ -262,7 +264,7 @@ function QuestionFormField({
   onRemove,
 }: {
   index: number;
-  control: any;
+  control: Control<SurveyFormData>;
   onRemove: () => void;
 }) {
   const questionType = useWatch({
@@ -353,10 +355,10 @@ function QuestionFormField({
   );
 }
 
-function OptionsField({ control, questionIndex }: { control: any; questionIndex: number }) {
+function OptionsField({ control, questionIndex }: { control: Control<SurveyFormData>; questionIndex: number }) {
   const { fields, append, remove } = useFieldArray({
     control,
-    name: `questions.${questionIndex}.options`,
+    name: `questions.${questionIndex}.options` as any,
   });
 
   return (
@@ -404,7 +406,7 @@ function OptionsField({ control, questionIndex }: { control: any; questionIndex:
   );
 }
 
-function RatingField({ control, questionIndex }: { control: any; questionIndex: number }) {
+function RatingField({ control, questionIndex }: { control: Control<SurveyFormData>; questionIndex: number }) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <FormField

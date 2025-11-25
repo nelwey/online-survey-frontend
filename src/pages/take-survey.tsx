@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { useUser } from '@/contexts/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Separator } from '@/components/ui/separator';
 import { useSurvey } from '@/hooks/use-surveys';
-import { useSurveyResponses, useSubmitSurveyResponse } from '@/hooks/use-survey-responses';
+import { useSubmitSurveyResponse } from '@/hooks/use-survey-responses';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +24,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export function TakeSurveyPage() {
   const { id } = useParams<{ id: string }>();
   const { data: survey, isLoading, error } = useSurvey(id);
-  const { data: responses } = useSurveyResponses(id);
   const submitResponse = useSubmitSurveyResponse();
   const { user } = useUser();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -32,7 +31,7 @@ export function TakeSurveyPage() {
   const buildSchema = () => {
     if (!survey) return z.object({});
 
-    const schemaFields: Record<string, any> = {};
+    const schemaFields: Record<string, z.ZodTypeAny> = {};
 
     survey.questions.forEach((question, index) => {
       if (question.required) {
@@ -64,8 +63,10 @@ export function TakeSurveyPage() {
     return z.object(schemaFields);
   };
 
-  const form = useForm({
-    resolver: zodResolver(buildSchema()),
+  const schema = buildSchema();
+
+  const form = useForm<Record<string, unknown>>({
+    resolver: zodResolver(schema) as unknown as Resolver<Record<string, unknown>>,
     mode: 'onChange',
     defaultValues: {
       respondentName: '',
@@ -74,14 +75,15 @@ export function TakeSurveyPage() {
     },
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: Record<string, unknown>) => {
     if (!survey) return;
 
     const answers: Answer[] = survey.questions.map((question, index) => {
       const key = `question_${index}`;
+      const answerValue = data[key];
       return {
         questionId: question.id,
-        answer: data[key] || '',
+        answer: answerValue as string | string[] | number || '',
       };
     });
 
@@ -89,8 +91,8 @@ export function TakeSurveyPage() {
       surveyId: survey.id,
       userId: user?.id,
       answers,
-      respondentName: data.respondentName,
-      respondentEmail: data.respondentEmail || undefined,
+      respondentName: String(data.respondentName || ''),
+      respondentEmail: data.respondentEmail ? String(data.respondentEmail) : undefined,
       respondentAge:
         typeof data.respondentAge === 'number' ? data.respondentAge : undefined,
     });
@@ -142,7 +144,6 @@ export function TakeSurveyPage() {
         <FormField
           control={form.control}
           name={questionKey}
-          rules={{ required: question.required }}
           render={({ field }) => (
             <FormItem>
               <FormControl>
@@ -150,6 +151,7 @@ export function TakeSurveyPage() {
                   placeholder="Введите ваш ответ"
                   className="min-h-[120px]"
                   {...field}
+                  value={String(field.value || '')}
                 />
               </FormControl>
               <FormMessage />
@@ -168,11 +170,11 @@ export function TakeSurveyPage() {
             <FormItem>
               <FormControl>
                 <div className="space-y-3">
-                  {question.options.map((option, optIndex) => (
+                  {(question.options || []).map((option, optIndex) => (
                     <div key={optIndex} className="flex items-center space-x-2">
                       <Checkbox
                         id={`${questionKey}-${optIndex}`}
-                        checked={Array.isArray(field.value) && field.value.includes(option)}
+                        checked={Array.isArray(field.value) && (field.value as string[]).includes(option)}
                         onCheckedChange={(checked) => {
                           const currentValue = Array.isArray(field.value) ? field.value : [];
                           if (checked) {
@@ -207,11 +209,11 @@ export function TakeSurveyPage() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <RadioGroup
-                  value={field.value || ''}
+                  <RadioGroup
+                  value={String(field.value || '')}
                   onValueChange={field.onChange}
                 >
-                  {question.options.map((option, optIndex) => (
+                  {(question.options || []).map((option, optIndex) => (
                     <div key={optIndex} className="flex items-center space-x-2">
                       <RadioGroupItem value={option} id={`${questionKey}-${optIndex}`} />
                       <Label
@@ -244,7 +246,7 @@ export function TakeSurveyPage() {
               <FormControl>
                 <div className="space-y-4">
                   <Slider
-                    value={[field.value || min]}
+                    value={[typeof field.value === 'number' ? field.value : min]}
                     onValueChange={(value) => field.onChange(value[0])}
                     min={min}
                     max={max}
@@ -253,7 +255,7 @@ export function TakeSurveyPage() {
                   />
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>{min}</span>
-                    <span className="text-lg font-semibold">{field.value || min}</span>
+                    <span className="text-lg font-semibold">{typeof field.value === 'number' ? field.value : min}</span>
                     <span>{max}</span>
                   </div>
                 </div>
@@ -273,8 +275,8 @@ export function TakeSurveyPage() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <RadioGroup
-                  value={field.value || ''}
+                  <RadioGroup
+                  value={String(field.value || '')}
                   onValueChange={field.onChange}
                 >
                   <div className="flex items-center space-x-2">
@@ -357,7 +359,7 @@ export function TakeSurveyPage() {
                           <FormItem>
                             <FormLabel>Имя</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ваше имя" required {...field} />
+                              <Input placeholder="Ваше имя" required {...field} value={String(field.value || '')} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -374,6 +376,7 @@ export function TakeSurveyPage() {
                                 type="email"
                                 placeholder="your@email.com"
                                 {...field}
+                                value={String(field.value || '')}
                               />
                             </FormControl>
                             <FormMessage />
@@ -393,6 +396,7 @@ export function TakeSurveyPage() {
                                 min="1"
                                 max="150"
                                 {...field}
+                                value={String(field.value || '')}
                               />
                             </FormControl>
                             <FormMessage />

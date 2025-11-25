@@ -3,7 +3,7 @@ import { useSurveys } from '@/hooks/use-surveys';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, ArrowRight, FileText } from 'lucide-react';
+import { Calendar, ArrowRight, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function HomePage() {

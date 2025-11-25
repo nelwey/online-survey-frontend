@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { User, FileText, MessageSquare, TrendingUp, ArrowRight, Calendar } from 'lucide-react';
+import { FileText, MessageSquare, TrendingUp, ArrowRight, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function UserDashboardPage() {
