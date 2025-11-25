@@ -78,23 +78,53 @@ export function TakeSurveyPage() {
   const onSubmit = async (data: Record<string, unknown>) => {
     if (!survey) return;
 
-    const answers: Answer[] = survey.questions.map((question, index) => {
-      const key = `question_${index}`;
-      const answerValue = data[key];
-      return {
-        questionId: question.id,
-        answer: answerValue as string | string[] | number || '',
-      };
-    });
+    // Get all form values to ensure we capture all answers, not just the current question
+    const allFormValues = form.getValues();
+
+    // Collect all answers from the form data
+    // Include all answers that are not undefined/null
+    // Empty strings and empty arrays are valid (for optional questions)
+    const answers: Answer[] = survey.questions
+      .map((question, index) => {
+        const key = `question_${index}`;
+        // Try both the submitted data and all form values
+        const answerValue = data[key] ?? allFormValues[key];
+        
+        // Only skip if answer is completely undefined or null
+        // Keep empty strings, empty arrays, and 0 as valid answers
+        if (answerValue === undefined || answerValue === null) {
+          return null;
+        }
+        
+        return {
+          questionId: question.id,
+          answer: answerValue as string | string[] | number,
+        };
+      })
+      .filter((answer): answer is Answer => answer !== null);
+
+    // Debug: log what we're sending
+    console.log('Submitting answers:', answers);
+    console.log('Form data from submit:', data);
+    console.log('All form values:', allFormValues);
+
+    // Ensure we have at least one answer
+    if (answers.length === 0) {
+      console.error('No answers to submit - all questions may be unanswered');
+      // This should be caught by form validation, but just in case
+      return;
+    }
 
     await submitResponse.mutateAsync({
       surveyId: survey.id,
       userId: user?.id,
       answers,
-      respondentName: String(data.respondentName || ''),
-      respondentEmail: data.respondentEmail ? String(data.respondentEmail) : undefined,
+      respondentName: String(allFormValues.respondentName || data.respondentName || ''),
+      respondentEmail: allFormValues.respondentEmail || data.respondentEmail ? String(allFormValues.respondentEmail || data.respondentEmail) : undefined,
       respondentAge:
-        typeof data.respondentAge === 'number' ? data.respondentAge : undefined,
+        typeof (allFormValues.respondentAge || data.respondentAge) === 'number' 
+          ? (allFormValues.respondentAge || data.respondentAge) as number
+          : undefined,
     });
   };
 
@@ -422,7 +452,14 @@ export function TakeSurveyPage() {
                 {!isLastQuestion ? (
                   <Button
                     type="button"
-                    onClick={() => setCurrentQuestionIndex((prev) => Math.min(survey.questions.length - 1, prev + 1))}
+                    onClick={async () => {
+                      // Validate current question before moving to next
+                      const questionKey = `question_${currentQuestionIndex}`;
+                      const isValid = await form.trigger(questionKey);
+                      if (isValid || !currentQuestion.required) {
+                        setCurrentQuestionIndex((prev) => Math.min(survey.questions.length - 1, prev + 1));
+                      }
+                    }}
                   >
                     Далее
                     <ArrowRight className="h-4 w-4 ml-2" />
